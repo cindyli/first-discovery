@@ -204,6 +204,107 @@ https://github.com/gpii/universal/LICENSE.txt
         jqUnit.assertEquals("The model value should have been set correctly", expectedValue, that.model.speak);
     };
 
+    /************
+     * keyboard *
+     ************/
+
+    fluid.defaults("gpii.tests.firstDiscovery.panel.keyboard", {
+        gradeNames: ["gpii.firstDiscovery.panel.keyboard", "autoInit"],
+        messageBase: {
+            "keyboardInstructions": "Adjustments can be made to help you with using the keyboard.",
+            "placeholder": "Type the @ symbol now",
+
+            "try": "try it",
+            "on": "ON",
+            "off": "OFF",
+            "turnOn": "turn ON",
+            "turnOff": "turn OFF",
+
+            "stickyKeysInstructions": "<strong>Sticky Keys</strong> can help with holding two keys down at once.",
+            "stickyKeys": "Sticky Keys is",
+
+            "successInstructions": "You don’t appear to need any keyboard adjustments. Please proceed to the next screen.",
+
+            "inputTooltip": "Select to begin typing",
+            "tryTooltip": "Select to turn Sticky Keys on",
+            "turnOnTooltip": "Select to turn Sticky Keys on",
+            "turnOffTooltip": "Select to turn Sticky Keys off"
+        }
+    });
+
+    fluid.defaults("gpii.tests.keyboardPanel", {
+        gradeNames: ["fluid.test.testEnvironment", "autoInit"],
+        components: {
+            keyboard: {
+                type: "gpii.tests.firstDiscovery.panel.keyboard",
+                container: ".gpiic-fd-keyboard"
+            },
+            keyboardTester: {
+                type: "gpii.tests.keyboardTester"
+            }
+        }
+    });
+
+    fluid.defaults("gpii.tests.keyboardTester", {
+        gradeNames: ["fluid.test.testCaseHolder", "autoInit"],
+        modules: [{
+            name: "Tests the keyboard panel",
+            tests: [{
+                expect: 3,
+                name: "Initialization",
+                sequence: [{
+                    func: "{keyboard}.refreshView"
+                }, {
+                    listener: "gpii.tests.keyboardTester.verifyRendering",
+                    args: ["{keyboard}", "keyboardInstructions"],
+                    event: "{keyboard}.events.afterRender"
+                }]
+            }, {
+                expect: 4,
+                name: "Don't Offer Assistance",
+                sequence: [{
+                    func: "{keyboard}.applier.change",
+                    args: ["offerAssistance", false]
+                }, {
+                    listener: "gpii.tests.keyboardTester.verifyNoAssistance",
+                    args: ["{keyboard}"],
+                    spec: {path: "offerAssistance", priority: "last"},
+                    changeEvent: "{keyboard}.applier.modelChanged"
+                }]
+            }, {
+                expect: 7,
+                name: "Offer Assistance",
+                sequence: [{
+                    func: "{keyboard}.applier.change",
+                    args: ["offerAssistance", true]
+                }, {
+                    listener: "gpii.tests.keyboardTester.verifyOfferAssistance",
+                    args: ["{keyboard}"],
+                    spec: {path: "offerAssistance", priority: "last"},
+                    changeEvent: "{keyboard}.applier.modelChanged"
+                }]
+            }]
+        }]
+    });
+
+    gpii.tests.keyboardTester.verifyRendering = function (that, instructions) {
+        jqUnit.assertEquals("The instructions should be rendered correctly", that.options.messageBase[instructions], that.locate("instructions").text());
+        jqUnit.assertEquals("The placeholder text should be set correctly", that.options.messageBase.placeholder, that.locate("placeholder").attr("placeholder"));
+
+        jqUnit.assertTrue("The hide class on the assistance element should be added", that.locate("assistance").hasClass(that.options.styles.hide));
+    };
+
+    gpii.tests.keyboardTester.verifyNoAssistance = function (that) {
+        jqUnit.assertFalse("The offerAssistance model value should be false", that.model.offerAssistance);
+        gpii.tests.keyboardTester.verifyRendering(that, "successInstructions");
+    };
+
+    gpii.tests.keyboardTester.verifyOfferAssistance = function (that) {
+        jqUnit.assertTrue("The offerAssistance model value should be true", that.model.offerAssistance);
+        jqUnit.assertFalse("The hide class on the assistance element should be removed", that.locate("assistance").hasClass(that.options.styles.hide));
+        gpii.tests.keyboard.stickyKeysAdjusterTester.verifyInitialRendering(that.assistance);
+    };
+
     /*******************
      * congratulations *
      *******************/
@@ -256,6 +357,7 @@ https://github.com/gpii/universal/LICENSE.txt
         fluid.test.runTests([
             "gpii.tests.textSizePanel",
             "gpii.tests.speakTextPanel",
+            "gpii.tests.keyboardPanel",
             "gpii.tests.congratulationsPanel"
         ]);
     });

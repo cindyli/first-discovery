@@ -120,6 +120,106 @@ https://github.com/fluid-project/infusion/raw/master/Infusion-LICENSE.txt
         that.locate("meter").css("height", percentage + "%");
     };
 
+    fluid.defaults("gpii.firstDiscovery.panel.keyboard", {
+        gradeNames: ["fluid.prefs.panel", "autoInit"],
+        preferenceMap: {
+            "gpii.firstDiscovery.stickyKeys": {
+                "model.stickyKeys": "default"
+            }
+        },
+        selectors: {
+            placeholder: ".gpiic-fd-keyboard-input",
+            instructions: ".gpiic-fd-keyboard-instructions",
+            assistance: ".gpiic-fd-keyboard-assistance"
+        },
+        styles: {
+            hide: "gpii-fd-keyboard-assistanceHide"
+        },
+        events: {
+            onOfferAssistance: null
+        },
+        model: {
+            // offerAssistance: boolean
+        },
+        components: {
+            assistance: {
+                type: "gpii.firstDiscovery.keyboard.stickyKeysAdjuster",
+                createOnEvent: "onOfferAssistance",
+                container: "{that}.container",
+                options: {
+                    messageBase: "{keyboard}.options.messageBase",
+                    modelRelay: {
+                        source: "stickyKeysEnabled",
+                        target: "{keyboardInput}.model.stickyKeysEnabled",
+                        backward: "liveOnly",
+                        singleTransform: {
+                            type: "fluid.transforms.identity"
+                        }
+                    }
+                }
+            },
+            stickyKeysAssessor: {
+                type: "gpii.firstDiscovery.keyboard.stickyKeysAssessment",
+                options: {
+                    requiredInput: "@",
+                    modelRelay: {
+                        source: "offerAssistance",
+                        target: "{keyboard}.model.offerAssistance",
+                        forward: "liveOnly",
+                        singleTransform: {
+                            type: "fluid.transforms.identity"
+                        }
+                    }
+                }
+            },
+            keyboardInput: {
+                type: "gpii.firstDiscovery.keyboardInput",
+                createOnEvent: "afterRender",
+                container: "{that}.dom.placeholder",
+                options: {
+                    model: {
+                        userInput: "{stickyKeysAssessor}.model.input"
+                    }
+                }
+            }
+        },
+        protoTree: {
+            placeholder: {
+                decorators: {
+                    attrs: {
+                        placeholder: "{that}.msgLookup.placeholder"
+                    }
+                }
+            },
+            assistance: {
+                decorators: {
+                    type: "addClass",
+                    classes: "{that}.options.styles.hide"
+                }
+            },
+            instructions: {markup: {messagekey: "keyboardInstructions"}}
+        },
+        modelListeners: {
+            offerAssistance: [{
+                listener: "gpii.firstDiscovery.panel.keyboard.offerAssistance",
+                excludeSource: "init",
+                args: ["{that}"]
+            }, {
+                listener: "{stickyKeysAssessor}.destroy",
+                excludeSource: "init"
+            }]
+        }
+    });
+
+    gpii.firstDiscovery.panel.keyboard.offerAssistance = function (that) {
+        if (that.model.offerAssistance) {
+            that.locate("assistance").removeClass(that.options.styles.hide);
+            that.events.onOfferAssistance.fire();
+        } else {
+            that.locate("instructions").text(that.msgResolver.resolve("successInstructions"));
+        }
+    };
+
     fluid.defaults("gpii.firstDiscovery.panel.textSize", {
         gradeNames: ["gpii.firstDiscovery.panel.ranged", "autoInit"],
         preferenceMap: {
